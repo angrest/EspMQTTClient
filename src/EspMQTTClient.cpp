@@ -1,5 +1,10 @@
 #include "EspMQTTClient.h"
 
+EspMQTTClient* EspMQTTClient::_callbackInstance = nullptr;
+void EspMQTTClient::_mqttCallback(char* topic, uint8_t* payload, unsigned int length) {
+  if (_callbackInstance) _callbackInstance->mqttMessageReceivedCallback(topic, payload, length);
+}
+
 
 // =============== Constructor / destructor ===================
 
@@ -74,7 +79,8 @@ EspMQTTClient::EspMQTTClient(
   _mqttLastWillMessage = 0;
   _mqttLastWillRetain = false;
   _mqttCleanSession = true;
-  _mqttClient.setCallback([this](char* topic, uint8_t* payload, unsigned int length) {this->mqttMessageReceivedCallback(topic, payload, length);});
+  _callbackInstance = this;
+  _mqttClient.setCallback(_mqttCallback);
   _failedMQTTConnectionAttemptCount = 0;
 
   // HTTP/OTA update related
