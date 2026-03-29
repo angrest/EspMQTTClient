@@ -32,8 +32,17 @@
 void onConnectionEstablished(); // MUST be implemented in your sketch. Called once everythings is connected (Wifi, mqtt).
 
 typedef std::function<void()> ConnectionEstablishedCallback;
+
+// Efficient callbacks: payload/topic delivered as const char* — no heap allocation.
 typedef std::function<void(const char* message)> MessageReceivedCallback;
 typedef std::function<void(const char* topic, const char* message)> MessageReceivedCallbackWithTopic;
+
+// Legacy String callbacks: kept for backwards compatibility.
+// Internally the library always dispatches via const char*; a thin wrapper
+// constructs the String objects so existing sketches compile unchanged.
+typedef std::function<void(const String& message)> MessageReceivedCallbackString;
+typedef std::function<void(const String& topicStr, const String& message)> MessageReceivedCallbackWithTopicString;
+
 typedef std::function<void()> DelayedExecutionCallback;
 
 class EspMQTTClient
@@ -155,6 +164,21 @@ public:
   bool subscribe(const char* topic, MessageReceivedCallback messageReceivedCallback, uint8_t qos = 0);
   bool subscribe(const char* topic, MessageReceivedCallbackWithTopic messageReceivedCallback, uint8_t qos = 0);
   bool unsubscribe(const char* topic);   //Unsubscribes from the topic, if it exists, and removes it from the CallbackList.
+
+  // String compatibility overloads — existing sketches compile unchanged.
+  // A wrapper lambda converts the const char* dispatch to Arduino String objects.
+  inline bool publish(const String& topic, const String& payload, bool retain = false) {
+    return publish(topic.c_str(), payload.c_str(), retain);
+  }
+  inline bool subscribe(const String& topic, MessageReceivedCallbackString cb, uint8_t qos = 0) {
+    return subscribe(topic.c_str(), [cb](const char* msg){ cb(String(msg)); }, qos);
+  }
+  inline bool subscribe(const String& topic, MessageReceivedCallbackWithTopicString cb, uint8_t qos = 0) {
+    return subscribe(topic.c_str(), [cb](const char* t, const char* msg){ cb(String(t), String(msg)); }, qos);
+  }
+  inline bool unsubscribe(const String& topic) {
+    return unsubscribe(topic.c_str());
+  }
   void setKeepAlive(uint16_t keepAliveSeconds); // Change the keepalive interval (15 seconds by default)
   inline void setMqttClientName(const char* name) { _mqttClientName = name; }; // Allow to set client name manually (must be done in setup(), else it will not work.)
   inline void setMqttServer(const char* server, const char* username = "", const char* password = "", const uint16_t port = 1883) { // Allow setting the MQTT info manually (must be done in setup())
