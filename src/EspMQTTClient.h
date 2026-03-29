@@ -32,8 +32,8 @@
 void onConnectionEstablished(); // MUST be implemented in your sketch. Called once everythings is connected (Wifi, mqtt).
 
 typedef std::function<void()> ConnectionEstablishedCallback;
-typedef std::function<void(const String &message)> MessageReceivedCallback;
-typedef std::function<void(const String &topicStr, const String &message)> MessageReceivedCallbackWithTopic;
+typedef std::function<void(const char* message)> MessageReceivedCallback;
+typedef std::function<void(const char* topic, const char* message)> MessageReceivedCallbackWithTopic;
 typedef std::function<void()> DelayedExecutionCallback;
 
 class EspMQTTClient
@@ -151,10 +151,10 @@ public:
   bool setMaxPacketSize(const uint16_t size); // Pubsubclient >= 2.8; override the default value of MQTT_MAX_PACKET_SIZE
 
   bool publish(const char* topic, const uint8_t* payload, unsigned int plenght, bool retain);
-  bool publish(const String &topic, const String &payload, bool retain = false);
-  bool subscribe(const String &topic, MessageReceivedCallback messageReceivedCallback, uint8_t qos = 0);
-  bool subscribe(const String &topic, MessageReceivedCallbackWithTopic messageReceivedCallback, uint8_t qos = 0);
-  bool unsubscribe(const String &topic);   //Unsubscribes from the topic, if it exists, and removes it from the CallbackList.
+  bool publish(const char* topic, const char* payload, bool retain = false);
+  bool subscribe(const char* topic, MessageReceivedCallback messageReceivedCallback, uint8_t qos = 0);
+  bool subscribe(const char* topic, MessageReceivedCallbackWithTopic messageReceivedCallback, uint8_t qos = 0);
+  bool unsubscribe(const char* topic);   //Unsubscribes from the topic, if it exists, and removes it from the CallbackList.
   void setKeepAlive(uint16_t keepAliveSeconds); // Change the keepalive interval (15 seconds by default)
   inline void setMqttClientName(const char* name) { _mqttClientName = name; }; // Allow to set client name manually (must be done in setup(), else it will not work.)
   inline void setMqttServer(const char* server, const char* username = "", const char* password = "", const uint16_t port = 1883) { // Allow setting the MQTT info manually (must be done in setup())
@@ -199,7 +199,7 @@ private:
   void connectToWifi();
   bool connectToMqttBroker();
   void processDelayedExecutionRequests();
-  bool mqttTopicMatch(const String &topic1, const String &topic2);
+  bool mqttTopicMatch(const char* topic1, const char* topic2);
   void mqttMessageReceivedCallback(char* topic, uint8_t* payload, unsigned int length);
 };
 

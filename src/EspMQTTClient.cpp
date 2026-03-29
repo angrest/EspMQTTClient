@@ -443,12 +443,12 @@ bool EspMQTTClient::publish(const char* topic, const uint8_t* payload, unsigned 
 }
 
 
-bool EspMQTTClient::publish(const String &topic, const String &payload, bool retain)
+bool EspMQTTClient::publish(const char* topic, const char* payload, bool retain)
 {
-  return publish(topic.c_str(), (const uint8_t*) payload.c_str(), payload.length(), retain);
+  return publish(topic, (const uint8_t*) payload, strlen(payload), retain);
 }
 
-bool EspMQTTClient::subscribe(const String &topic, MessageReceivedCallback messageReceivedCallback, uint8_t qos)
+bool EspMQTTClient::subscribe(const char* topic, MessageReceivedCallback messageReceivedCallback, uint8_t qos)
 {
   // Do not try to subscribe if MQTT is not connected.
   if(!isConnected())
@@ -459,7 +459,7 @@ bool EspMQTTClient::subscribe(const String &topic, MessageReceivedCallback messa
     return false;
   }
 
-  bool success = _mqttClient.subscribe(topic.c_str(), qos);
+  bool success = _mqttClient.subscribe(topic, qos);
 
   if(success)
   {
@@ -475,7 +475,7 @@ bool EspMQTTClient::subscribe(const String &topic, MessageReceivedCallback messa
   if (_enableDebugMessages)
   {
     if(success)
-      Serial.printf("MQTT: Subscribed to [%s]\n", topic.c_str());
+      Serial.printf("MQTT: Subscribed to [%s]\n", topic);
     else
       Serial.println("MQTT! subscribe failed");
   }
@@ -483,7 +483,7 @@ bool EspMQTTClient::subscribe(const String &topic, MessageReceivedCallback messa
   return success;
 }
 
-bool EspMQTTClient::subscribe(const String &topic, MessageReceivedCallbackWithTopic messageReceivedCallback, uint8_t qos)
+bool EspMQTTClient::subscribe(const char* topic, MessageReceivedCallbackWithTopic messageReceivedCallback, uint8_t qos)
 {
   if(subscribe(topic, (MessageReceivedCallback)NULL, qos))
   {
@@ -493,7 +493,7 @@ bool EspMQTTClient::subscribe(const String &topic, MessageReceivedCallbackWithTo
   return false;
 }
 
-bool EspMQTTClient::unsubscribe(const String &topic)
+bool EspMQTTClient::unsubscribe(const char* topic)
 {
   // Do not try to unsubscribe if MQTT is not connected.
   if(!isConnected())
@@ -508,13 +508,13 @@ bool EspMQTTClient::unsubscribe(const String &topic)
   {
     if (_topicSubscriptionList[i].topic.equals(topic))
     {
-      if(_mqttClient.unsubscribe(topic.c_str()))
+      if(_mqttClient.unsubscribe(topic))
       {
         _topicSubscriptionList.erase(_topicSubscriptionList.begin() + i);
         i--;
 
         if(_enableDebugMessages)
-          Serial.printf("MQTT: Unsubscribed from %s\n", topic.c_str());
+          Serial.printf("MQTT: Unsubscribed from %s\n", topic);
       }
       else
       {
@@ -668,12 +668,12 @@ void EspMQTTClient::processDelayedExecutionRequests()
  * @param topic2 must not contain wildcards
  * @return true on MQTT topic match, false otherwise
  */
-bool EspMQTTClient::mqttTopicMatch(const String &topic1, const String &topic2)
+bool EspMQTTClient::mqttTopicMatch(const char* topic1, const char* topic2)
 {
-  const char *topic1_p = topic1.begin();
-  const char *topic1_end = topic1.end();
-  const char *topic2_p = topic2.begin();
-  const char *topic2_end = topic2.end();
+  const char *topic1_p = topic1;
+  const char *topic1_end = topic1 + strlen(topic1);
+  const char *topic2_p = topic2;
+  const char *topic2_end = topic2 + strlen(topic2);
 
   while (topic1_p < topic1_end && topic2_p < topic2_end)
   {
@@ -732,24 +732,23 @@ void EspMQTTClient::mqttMessageReceivedCallback(char* topic, uint8_t* payload, u
   else
     strTerminationPos = length;
 
-  // Second, we add the string termination code at the end of the payload and we convert it to a String object
+  // Null-terminate the payload so it can be used as a C string
   payload[strTerminationPos] = '\0';
-  String payloadStr((char*)payload);
-  String topicStr(topic);
+  const char* payloadStr = (const char*)payload;
 
   // Logging
   if (_enableDebugMessages)
-    Serial.printf("MQTT >> [%s] %s\n", topic, payloadStr.c_str());
+    Serial.printf("MQTT >> [%s] %s\n", topic, payloadStr);
 
   // Send the message to subscribers
   for (std::size_t i = 0 ; i < _topicSubscriptionList.size() ; i++)
   {
-    if (mqttTopicMatch(_topicSubscriptionList[i].topic, String(topic)))
+    if (mqttTopicMatch(_topicSubscriptionList[i].topic.c_str(), topic))
     {
       if(_topicSubscriptionList[i].callback != NULL)
         _topicSubscriptionList[i].callback(payloadStr); // Call the callback
       if(_topicSubscriptionList[i].callbackWithTopic != NULL)
-        _topicSubscriptionList[i].callbackWithTopic(topicStr, payloadStr); // Call the callback
+        _topicSubscriptionList[i].callbackWithTopic(topic, payloadStr); // Call the callback
     }
   }
 }
