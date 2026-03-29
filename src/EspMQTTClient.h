@@ -66,6 +66,8 @@ private:
   unsigned int _failedMQTTConnectionAttemptCount;
 
   PubSubClient _mqttClient;
+  static EspMQTTClient* _callbackInstance;  // trampoline target for PubSubClient callback
+  static void _mqttCallback(char* topic, uint8_t* payload, unsigned int length);
 
   struct TopicSubscriptionRecord {
     String topic;
