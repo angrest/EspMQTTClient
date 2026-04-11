@@ -738,7 +738,7 @@ void EspMQTTClient::mqttMessageReceivedCallback(char* topic, uint8_t* payload, u
   else
     strTerminationPos = length;
 
-  // Null-terminate the payload so it can be used as a C string
+  // Null-terminate the payload in-place so we can treat it as a C string.
   payload[strTerminationPos] = '\0';
   const char* payloadStr = (const char*)payload;
 
@@ -752,9 +752,9 @@ void EspMQTTClient::mqttMessageReceivedCallback(char* topic, uint8_t* payload, u
     if (mqttTopicMatch(_topicSubscriptionList[i].topic.c_str(), topic))
     {
       if(_topicSubscriptionList[i].callback != NULL)
-        _topicSubscriptionList[i].callback(payloadStr); // Call the callback
+        _topicSubscriptionList[i].callback(payloadStr);
       if(_topicSubscriptionList[i].callbackWithTopic != NULL)
-        _topicSubscriptionList[i].callbackWithTopic(topic, payloadStr); // Call the callback
+        _topicSubscriptionList[i].callbackWithTopic(topic, payloadStr);
     }
   }
 }
